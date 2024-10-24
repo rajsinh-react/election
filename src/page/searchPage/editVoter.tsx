@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { findVoter, updateAddress, updateVoter } from '../../ApiOperetion/voterApi';
-import { Box, Button, Container, InputLabel, MenuItem, Paper, Select, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Container, Divider, Grid, InputLabel, MenuItem, OutlinedInput, Paper, Select, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import moment from 'moment'
 import { calculteAge } from '../../../public/functions/calculteAge'
 import { voterInfoInterface } from '../../../public/interface/voterinfoInter';
@@ -49,11 +49,14 @@ export const EditVoter = () => {
         age: false,
         age_by_election: false,
         dob: false,
-        middelName: false
+        middelName: false,
+        gender: false,
+        suffix: false
+        
     })
 
 
-    const boxstyle = { padding: 1, }
+
 
     const getVoter = async () => {
         try {
@@ -103,6 +106,7 @@ export const EditVoter = () => {
 
     const fullDate = new Date();
     const c_date = moment(fullDate).format('YYYY-MM-DD')
+    
 
     const validateFields = async () => {
         const newErrors = {};
@@ -111,11 +115,23 @@ export const EditVoter = () => {
         newErrors.age = !voterdata.age;
         newErrors.age_by_election = !voterdata.age_by_election;
         newErrors.dob = !voterdata.dob;
-        newErrors.middelName = !voterdata.middleName
+        newErrors.middelName = !voterdata.middleName;
 
-        if (age > voterdata.age_by_election) {
-            newErrors.age_by_election = true
+        //address
+        newErrors.city = !address.city
+        newErrors.state = !address.state
+        newErrors.streetAddress = !address.street_address
+        newErrors.streetNumber = !address.street_number
+        newErrors.suffix_a = !address.suffix_a
+        newErrors.suffix_b = !address.suffix_b
+        newErrors.unitNumber = !address.unit_number
+        newErrors.unitType = !address.unit_type
+        newErrors.zip_4 = !address.zip_4
+        newErrors.zip_5 = !address.zip_5
+        newErrors.address2 = !address.address_line2
 
+        if (age < 18) {
+            voterdata.age_by_election = 18
         }
 
         //date of birth vaidation
@@ -128,7 +144,7 @@ export const EditVoter = () => {
 
 
 
-
+    // send data to server
     const handlevoter = async (e) => {
         e.preventDefault()
         console.log(errors)
@@ -136,11 +152,47 @@ export const EditVoter = () => {
         const isValid = await validateFields();
         console.log(isValid)
         if (!isValid) return;
-        const v_responce = await updateVoter(voterdata.driving_licence, voterdata)
-        console.log('voter info', v_responce.data)
-        const a_responce = await updateAddress(voterdata.driving_licence, address)
-        console.log('address', a_responce)
-        v_responce && a_responce && alert('Voter and Address updated successfully')
+        try {
+            const sendData = { ...voterdata, ...address }
+            const v_responce = await updateVoter(voterdata.driving_licence, sendData)
+            console.log('voter info', v_responce.data)
+            // const a_responce = await updateAddress(voterdata.driving_licence, address)
+            // console.log('address', a_responce)
+            v_responce && alert('Voter and Address updated successfully')
+        }
+        catch (error) {
+            console.log(error)
+        }
+
+    }
+
+
+    const handleDob = (e) => {
+        const v_dob = e.target.value
+        const date = moment(v_dob).format('YYYY-MM-DD')
+        const c_date = new Date()
+        const c_date1 = moment(c_date).format('YYYY-MM-DD')
+
+        const voterAge = calculteAge(date)
+        console.log(voterAge, 'in function')
+
+        const checkDate = moment(date).isBefore(c_date1)
+        console.log(checkDate)
+
+        if (checkDate) {
+            setvoterData((prev) => ({ ...prev, dob: date })),
+                setvoterData((prev) => ({ ...prev, age: voterAge }))
+            if (voterAge > 18) {
+                setvoterData((prev) => ({ ...prev, age_by_election: voterAge }))
+            }
+            else {
+                setvoterData((prev) => ({ ...prev, age_by_election: 18 }))
+            }
+        }
+        else {
+            alert('Please enter a valid date of birth')
+            errors.dob = true
+        }
 
     }
 
@@ -149,12 +201,23 @@ export const EditVoter = () => {
     const handelChangeVoter = async (e) => {
         try {
             setvoterData((prevData) => ({ ...prevData, [e.target.name]: e.target.value }))
+
+            if (age > 18 ) {
+                setvoterData((prev) => ({ ...prev, age_by_election: age }))
+                console.log(voterdata?.age_by_election)
+             }
+             else {
+                setvoterData((prev) => ({ ...prev, age_by_election: 18 }))
+                console.log(voterdata?.age_by_election)
+             }
+
         }
         catch (error) {
             console.log('error voter info', error)
         }
 
     }
+
     //for address handling
     const handleAddress = (e) => {
         try {
@@ -162,7 +225,6 @@ export const EditVoter = () => {
             console.log(e.target.name, e.target.value)
         }
         catch (error) {
-
             console.log(error, 'error in adrress')
         }
     }
@@ -172,8 +234,9 @@ export const EditVoter = () => {
     //     '& .MuiInputBase-input': {
     //         color: 'wheat',
     //     },
-    //     label: { color: 'wheat' }
-    // }
+    //     
+    const inputfield = { borderRadius: 2, height: 25, minWidth: '100% ', minHeight: '10px' }
+
     return (
         <>
             {loading ? (
@@ -181,247 +244,370 @@ export const EditVoter = () => {
             ) :
                 (
                     <>
-                        <Container sx={{ display: 'flex', alignItems: 'start', justifyContent: 'space-evenly' }} >
-                            {/* voter info */}
-                            <Paper
-                                elevation={2}
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
+                        <Box sx={{ alignItems: 'start', justifyContent: 'space-evenly' }} >
+
+                            <Paper sx={{ margin: 4, borderRadius: 5, minWidth: '1107px' }}  >
+
+                                <Typography color='primary'
+                                    ml={2} mt={2}
+
+                                    variant='subtitle1'
+                                    sx={{
+                                        position: 'relative',
+                                        display: 'inline-block',
+                                        textDecoration: 'none',
+                                        '&::after': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            left: 2,
+                                            right: 0,
+                                            bottom: -1,
+                                            height: '1px',
+                                            backgroundColor: 'primary.main',
+                                            paddingTop: '1px',
+                                        }
+                                    }}
+                                > voter Detail</Typography>
+                                <Divider />
+
+                                <Box sx={{
+                                    border: '2px  solid #e8e8e8',
                                     borderRadius: 2,
-
-
+                                    margin: 2
                                 }}>
-                                <Typography variant='h4' sx={{ marginBottom: 1, padding: 3 }}>
-                                    voter Info...
-                                </Typography>
-                                <Container sx={boxstyle}>
-                                    <TextField
-                                        //    sx={textFieldStyle}
-                                        label="First Name"
-                                        onChange={handelChangeVoter}
-                                        value={voterdata.firstName}
-                                        name='firstName'
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
-                                        error={errors.firstName}
-                                    />
-                                </Container>
+                                    <Grid container
+                                        spacing={3}
+                                        justifyContent={'start'}
+                                        p={2}
+                                    >
 
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        //sx={textFieldStyle}
 
-                                        label="Middel Name"
-                                        name='middleName'
-                                        value={voterdata?.middleName}
-                                        onChange={handelChangeVoter}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
-                                        error={errors.middelName} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        error={errors.lastName}
-                                        label="Last Name"
-                                        name='lastName'
-                                        required
-                                        value={voterdata?.lastName}
-                                        onChange={handelChangeVoter}
-                                        variant="outlined"
-                                        fullWidth
+                                        <Grid item xs={2.3} >
+                                            <InputLabel>Prifix</InputLabel>
+                                            <Select
+                                                sx={{ borderRadius: 2, width: '100%', height: 25 }}
+                                                name="prefix"
+                                                value={voterdata?.prefix}
+                                                onChange={handelChangeVoter}
+                                            >
+                                                <MenuItem value="Mr.">Mr.</MenuItem>
+                                                <MenuItem value="Mrs.">Mrs.</MenuItem>
+                                                <MenuItem value="Miss">Miss</MenuItem>
+                                            </Select>
+                                            {
+                                                !!errors.prefix && <Typography variant='body2' color='error'>
+                                                    required field
+                                                </Typography>
+                                            }
+                                        </Grid>
+                                        {/* lastName */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >LastName</InputLabel>
+                                            <OutlinedInput
+                                                sx={inputfield}
+                                                error={errors.lastName}
+                                                name='lastName'
+                                                required={true}
+                                                value={voterdata?.lastName}
+                                                onChange={handelChangeVoter}
 
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
 
-                                <Container sx={boxstyle} >
-                                    <InputLabel id='prefix'  >Prefix</InputLabel>
-                                    <Select
-                                        // sx={textFieldStyle}
-                                        name="prefix"
-                                        value={voterdata?.prefix}
-                                        onChange={handelChangeVoter}
-                                        fullWidth>
-                                        <MenuItem value="Mr.">Mr.</MenuItem>
-                                        <MenuItem value="Mrs.">Mrs.</MenuItem>
-                                        <MenuItem value="Miss">Miss</MenuItem>
-                                    </Select>
-                                </Container>
 
-                                <Container sx={{ display: 'flex' }}>
-                                    <Container   >
-                                        <TextField
-                                            // sx={textFieldStyle}
-                                            type='number'
-                                            label="Age"
-                                            name='age'
-                                            value={age}
-                                            onChange={handelChangeVoter}
-                                            variant="outlined"
-                                            error={errors.age}
-                                            InputLabelProps={{ shrink: true }} />
-                                    </Container>
 
-                                    <Container >
-                                        <InputLabel id='gender' >Gender</InputLabel>
-                                        <Select
-                                            // sx={textFieldStyle}
-                                            name='gender'
-                                            value={voterdata?.gender}
-                                            onChange={handelChangeVoter}
-                                        >
-                                            <MenuItem value="male">male</MenuItem>
-                                            <MenuItem value="female">female</MenuItem>
-                                            <MenuItem value="other">other</MenuItem>
-                                        </Select>
-                                    </Container>
+                                            />
+                                            {
+                                                !!errors.lastName && <Typography variant='body2' color='error'>
+                                                    enter lastName
+                                                </Typography>
+                                            }
 
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        type='number'
-                                        label="Age by Election"
-                                        name='age_by_election'
-                                        value={voterdata?.age_by_election}
-                                        onChange={handelChangeVoter}
-                                        variant="outlined"
-                                        fullWidth
-                                        error={errors.age_by_election}
-                                        InputLabelProps={{ shrink: true }} />
-                                    {errors.age_by_election && <Typography sx={{ color: 'red' }} variant='body2'>enter valide age</Typography>}
 
-                                </Container>
-                                <Container sx={boxstyle} >
+                                        </Grid >
+                                        {/* firstName */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >FirstName</InputLabel>
+                                            <OutlinedInput
+                                                sx={inputfield}
+                                                onChange={handelChangeVoter}
+                                                value={voterdata.firstName}
+                                                name='firstName'
 
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        type='date'
-                                        label="Date of Birth"
-                                        name='dob'
-                                        value={date}
-                                        onChange={handelChangeVoter}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }}
-                                        error={errors.dob}
-                                    />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
 
-                                        label="Driving License"
-                                        name='driving_licence'
-                                        value={voterdata?.driving_licence}
-                                        onChange={handelChangeVoter}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
+
+                                                error={errors.firstName} />
+                                            {errors.firstName &&
+                                                <Typography variant='body1' color='error'>
+                                                    enter firstName
+                                                </Typography>
+                                            }
+                                        </Grid >
+
+                                        {/* middleName */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >MiddleName</InputLabel>
+                                            <OutlinedInput
+                                                sx={inputfield}
+                                                name='middleName'
+                                                value={voterdata?.middleName}
+                                                onChange={handelChangeVoter}
+
+
+
+                                                error={errors.middelName} />
+                                            {errors.middelName && <Typography variant='body2' color='error'> enter middleName</Typography>}
+                                        </Grid >
+
+                                        {/* suffix */}
+                                        <Grid item xs={2.3}>
+
+                                            <InputLabel>
+                                                Suffix
+                                            </InputLabel>
+                                            <Select
+                                                name="sufix"
+                                                value={voterdata?.sufix}
+                                                onChange={handelChangeVoter}
+                                                style={{ minWidth: '100%' }}
+                                                sx={inputfield}
+                                                error={!!errors.suffix}
+                                            >
+                                                <MenuItem value="senior">sr.</MenuItem>
+                                                <MenuItem value="junior">jr.</MenuItem>
+                                            </Select>
+                                            {errors.suffix && <Typography variant='body2' color='error'>required</Typography>}
+                                        </Grid >
+
+                                        {/* gender */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel> Gender</InputLabel>
+                                            <Select name="gender"
+                                                value={voterdata?.gender}
+                                                onChange={handelChangeVoter}
+                                                style={{ minWidth: '100%' }}
+                                                sx={inputfield}
+                                                required >
+
+                                                <MenuItem value="male">male</MenuItem>
+                                                <MenuItem value="female">female</MenuItem>
+                                                <MenuItem value="other">other</MenuItem>
+                                            </Select>
+                                            {errors.gender && <Typography variant='body2' color='error'> required</Typography>}
+
+                                        </Grid >
+
+                                        {/* date of  birth */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Date of Birth</InputLabel>
+                                            <OutlinedInput
+                                                sx={inputfield}
+                                                type='date'
+                                                name='dob'
+                                                value={date}
+                                                onChange={handleDob}
+
+
+
+                                                error={errors.dob}
+                                            />
+                                            {errors.dob && <Typography variant='body2' color='error'> enter Date Of Birth</Typography>}
+                                        </Grid >
+
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >Age </InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                type='number'
+                                                name='age'
+                                                value={age}
+                                                onChange={handelChangeVoter}
+
+                                                error={errors.age}
+
+                                            />
+
+                                        </Grid >
+
+                                        {/* Age by Election Date */}
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >Age by Election Date</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                type='number'
+                                                name='age_by_election'
+                                                value={voterdata.age_by_election}
+                                                // onChange={handelChangeVoter}
+                                                error={errors.age_by_election}
+                                            />
+                                            {errors.age_by_election && <Typography variant='body2' color='error'>enter valid age</Typography>}
+                                        </Grid >
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel >Driving License</InputLabel>
+
+                                             <Tooltip title="not changeable" arrow>
+                                            <OutlinedInput sx={inputfield}
+
+                                                type='number'
+                                                name='age_by_election'
+                                                value={voterdata?.driving_licence}
+                                                
+                                                
+                                                // onChange={handelChangeVoter}
+                                                // error={errors.age_by_election}
+                                            />
+                                            </Tooltip>
+                                            {/* {errors.age_by_election && <Typography variant='body2' color='error'>enter valid age</Typography>} */}
+                                        </Grid >
+
+                                    </Grid>
+                                </Box>
                             </Paper>
+                        
 
                             {/* addresss */}
-                            <Paper elevation={2}
-                                sx={{
-                                    width: 1 / 3, display: 'flex', flexDirection: 'column', borderRadius: 2,
-                                }}>
-                                <Typography variant="h4" marginBottom={3} padding={4} >
-                                    address
-                                </Typography>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="City"
-                                        onChange={handleAddress}
-                                        name='city'
-                                        value={address?.city}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="State"
-                                        onChange={handleAddress}
-                                        name='state'
-                                        value={address?.state}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Street Address"
-                                        onChange={handleAddress}
-                                        name='street_address'
-                                        value={address?.street_address}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Street Number"
-                                        onChange={handleAddress}
-                                        name='street_name'
-                                        value={address?.street_number}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Suffix A"
-                                        onChange={handleAddress}
-                                        name='suffix_a'
-                                        value={address?.suffix_a}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Suffix B"
-                                        onChange={handleAddress}
-                                        name='suffix_b'
-                                        value={address?.suffix_b}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Unit Number"
-                                        onChange={handleAddress}
-                                        name='unit_number'
-                                        value={address?.unit_number}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
-                                <Container sx={boxstyle} >
-                                    <TextField
-                                        // sx={textFieldStyle}
-                                        label="Unit Type"
-                                        onChange={handleAddress}
-                                        name='unit_type'
-                                        value={address?.unit_type}
-                                        variant="outlined"
-                                        fullWidth
-                                        InputLabelProps={{ shrink: true }} />
-                                </Container>
+
+                            <Paper sx={{ margin: 4, borderRadius: 5, minWidth: '1107px' }}>
+                                <Typography color='primary'
+                                    ml={2} mt={2}
+                                    variant='subtitle1'
+                                    sx={{
+                                        position: 'relative',
+                                        display: 'inline-block',
+                                        textDecoration: 'none',
+                                        '&::after': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            left: 2,
+                                            right: 0,
+                                            bottom: -1,
+                                            height: '1px',
+                                            backgroundColor: 'primary.main',
+                                            paddingTop: '1px',
+                                        }
+                                    }}
+                                > Address</Typography>
+                                <Divider />
+                                <Box
+                                    sx={{
+                                        border: ' 2px  solid #e8e8e8',
+                                        margin: 2,
+                                        borderRadius: 2,
+
+                                    }}>
+                                    <Grid container spacing={3}
+                                        justifyContent={'start'}
+                                        pl={2} pt={1} >
+                                        <Grid item xs={2.3} >
+                                            <InputLabel>Street Number</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                            type='number'
+                                            name='street_number'
+                                                value={address?.street_number}
+                                                onChange={handleAddress}
+                                                
+                                              
+                                            
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Suffix A</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+
+                                                onChange={handleAddress}
+                                                name='suffix_a'
+                                                value={address?.suffix_a}
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Suffix B</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='suffix_b'
+                                                value={address?.suffix_b}
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Street Address/P.O. Box</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='street_address'
+                                                value={address?.street_address}
+
+
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Unit Type</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='unit_type'
+                                                value={address?.unit_type}
+
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Unit Number</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='unit_number'
+                                                value={address?.unit_number}
+                                            />
+
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Address Line 2</InputLabel>
+                                            <OutlinedInput sx={inputfield} type="text" name="address_line2" value={address.address_line2} onChange={handleAddress} required />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>City</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='city'
+                                                value={address?.city}
+
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>State</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                onChange={handleAddress}
+                                                name='state'
+                                                value={address?.state}
+
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={2.3}>
+                                            <InputLabel>Zip 5</InputLabel>
+                                            <OutlinedInput sx={inputfield}
+                                                type="number"
+                                                name="zip_5"
+                                                value={address.zip_5}
+                                                onChange={handleAddress} />
+                                        </Grid>
+
+                                        <Grid item xs={2.3} pb={1}>
+                                            <InputLabel>Zip 4</InputLabel>
+
+                                            <OutlinedInput
+                                                sx={inputfield}
+                                                type="number"
+                                                name="zip_4"
+                                                value={address.zip_4}
+                                                onChange={handleAddress} />
+                                        </Grid>
+
+                                    </Grid>
+                                </Box>
                             </Paper>
-                        </Container>
+                        </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'center' }} >
                             <Tooltip title="Add" sx={{ m: 2 }}>
                                 <Button variant="contained" color="success" onClick={handlevoter}>Submit</Button>

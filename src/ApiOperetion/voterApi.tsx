@@ -15,8 +15,14 @@ export const createVoter = (data) => {
 }
 
 //post voter address
-export const createVoterAddress = (data) => {
-    return voterApi.post('/post/address', data)
+// export const createVoterAddress = (data) => {
+//     return voterApi.post('/post/address', data)
+// }
+
+
+//search voter
+export const  searchVoter = (data) => {
+    return voterApi.get(`/searchVoter?${data}`)
 }
 
 
@@ -29,8 +35,8 @@ export const findVoter = (data) => {
 export const updateVoter = (driving_licence, data) => {
     return voterApi.put(`/update/${driving_licence}`, data)
 }
-//update  voter address
 
+//update  voter address
 export const updateAddress= (id,data)=>{
     return voterApi.put(`/update/${id}/address`,data)   
 }

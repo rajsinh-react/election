@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react'
 
 import { createVoter, createVoterAddress, readVoterApi } from '../../ApiOperetion/voterApi'
-import { Alert, Box, Button, Container, Divider, Grid, Grid2, Input, InputLabel, List, ListItem, MenuItem, OutlinedInput, Paper, Select, Tooltip, Typography } from '@mui/material'
-import Checkbox from '@mui/joy/Checkbox'
+import {  Box, Button, Container, Divider, Grid, Grid2, Input, InputLabel, List, ListItem, MenuItem, OutlinedInput, Paper, Select, Tooltip, Typography } from '@mui/material'
+
 import { Link, Element } from 'react-scroll'
 import moment from 'moment'
+import Alert from '@mui/material/Alert';
+
 
 import { voterInfoInterface } from '../../../public/interface/voterinfoInter'
 import { DetailvoterInfo } from './detailVoterInfoComponent'
@@ -46,6 +48,7 @@ export const DatailPage = () => {
     signature: false,
     p_number: undefined
   })
+  const[alert,setAlert]= useState({ open: false, message: '', severity: '' })
 
 
   const [address, setAddress] = useState({
@@ -67,42 +70,37 @@ export const DatailPage = () => {
   let currentDate: any = new Date()
   currentDate = moment(currentDate).format('YYYY-MM-DD')
 
-
+// check Detail true or false
   const voterinfo = useCallback(() => {
     return Object.values(voterData).every((data) => data)
-
   }
     , [voterData])
 
-
+// check address true or false
   const addressCheck = useCallback(() => {
     return Object.values(address).every((data) => data)
   }, [address])
 
-
   console.log('voterinfo :', voterinfo(), 'addresscheck:  ', addressCheck())
 
 
-
+   // stroe voter detail in voterData
   const handlevoter = (e) => {
     try {
       setvoterData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
       console.log(e.target.name, e.target.value)
 
       console.log(voterData)
-
     }
     catch (error) {
       console.log(error, 'error in voter  info')
-
     }
   }
 
 
-  //add adress 
+  //store address in address
   const handleAddress = (e) => {
     try {
-
       address.user_id = voterData.driving_licence
       setAddress((prev) => ({ ...prev, [e.target.name]: e.target.value }))
       console.log(address)
@@ -134,7 +132,6 @@ export const DatailPage = () => {
     newErrors.email = !voterData.email
     newErrors.dob = !voterData.dob
 
-    console.log("first Name is ", voterData.driving_licence)
     if (voterData.firstName?.length < 3) {
       newErrors.firstName = true
     }
@@ -166,34 +163,32 @@ export const DatailPage = () => {
 
 
 
-
-
+//send data to server
   const addVoter = async (voterData, address) => {
     const voterinformation={...address,...voterData}
     console.log('send data to server',voterinformation)
-    try {
-    
+    try{
       const res = await createVoter(voterinformation)
       console.log('info', res)
   
       if (res.status === 200) {
-        <Alert severity="success">Voter Add successfully</Alert>
-        {console.log(res.status)}
-        window.location.reload()
-      }
-    if(res.status ===  400){
-      <Alert severity="error">Driving Licence Already Exist</Alert>
+              {console.log(res.status)}
+              setAlert({ open: true, message: 'Voter Add Successful', severity: 'success' })
+   
+  }}
+  catch(error){ 
+    if(error.status===400){
+      console.log(error.status)
+      setAlert({ open: true, message: 'Duplicate Voter Entry', severity: 'error' })
     }
-    if(res.status ===  500){
-      <Alert severity="error">some thing else</Alert>
-  }
+    if(error.status === 500){
+      console.log(error.status) 
+      setAlert({ open: true, message: 'SomeThing wrong', severity: 'error' })}
+    
+    }
+  
+
 }
-    catch (err) {
-      console.log(err)
-    }
-  }
-
-
 
   // submit form handle
   const handleForm = async (e) => {
@@ -208,7 +203,7 @@ export const DatailPage = () => {
       return addVoter(voterData, address)
     }
     else {
-      alert('Please fill all the fields')
+      setAlert({ open: true, message: 'Required Field Is Empty', severity: 'info' })
     }
   }
 
@@ -227,8 +222,7 @@ export const DatailPage = () => {
   return (
     <>
 
-      <Paper style={{ width: 200, position: 'fixed', left: 0, height: '50vh', borderRadius: 10 }}  >
-
+      <Paper style={{ width: 200, position: 'fixed', minHeight:"870px" ,left: 0, borderRadius: 10 }}  >
         <List style={{ paddingTop: 20, }}  >
           {linkTo.map((current) => {
             return (
@@ -251,7 +245,25 @@ export const DatailPage = () => {
           })}
         </List>
       </Paper>
-      <Paper sx={{ position: 'absolute', right: 0, left: 220 ,top:0, borderRadius: 5,  minWidth:'1000px'}}>
+      <Paper sx={{
+         position: 'relative',
+          marginRight:0,marginLeft:28 ,top:0, borderRadius: 5, minWidth:'775px'}}>
+      {alert.open && (
+        <Alert 
+         variant="filled"
+        severity={alert.severity} 
+        onClose={() => setAlert({ ...alert, open: false })} 
+        sx={{
+          position:'fixed',
+          top:2,
+          left:'50%',
+        borderRadius:10,
+          zIndex:1
+        }}
+        >
+          {alert.message}
+        </Alert>
+      )}
         <Element name='voterinfo'>
           <DetailvoterInfo
             voterData={voterData}
@@ -262,7 +274,7 @@ export const DatailPage = () => {
             inputfield={inputfield} />
         </Element>
 
-        {/* {/* user address */}
+        {/* user address */}
 
         <Element name='address'>
           <AddressComponent
@@ -270,7 +282,7 @@ export const DatailPage = () => {
             inputfield={inputfield}
             handleAddress={handleAddress} />
         </Element>
-        <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: 'transparent',  }} >
+        <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: 'transparent',bottom:0}}  >
           <Tooltip title="Add" sx={{ m: 2 }}>
             <Button variant="contained" color="success" onClick={handleForm}>Submit</Button>
           </Tooltip>
@@ -279,6 +291,7 @@ export const DatailPage = () => {
           </Tooltip>
         </Box>
       </Paper>
+    
 
     </>
 

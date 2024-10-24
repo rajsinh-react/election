@@ -64,8 +64,6 @@ export const DetailvoterInfo = ({ voterData, setvoterData, handlevoter, textFiel
                             </Typography>
 
                         }
-
-
                     </Grid>
                     {/* lastName */}
                     <Grid item xs={2.3}>
@@ -266,8 +264,7 @@ export const DetailvoterInfo = ({ voterData, setvoterData, handlevoter, textFiel
                         <OutlinedInput sx={inputfield}
                             type="text"
                             name='driving_licence'
-                            value={voterData.driving_licence}
-                            onChange={handlevoter}
+                    
                         />
                     </Grid >
                     <Grid item xs={2.3}>
